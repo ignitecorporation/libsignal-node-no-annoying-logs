@@ -287,25 +287,41 @@ class SessionRecord {
         return session.indexInfo.closed !== -1;
     }
 
+    // removeOldSessions() {
+    //     while (Object.keys(this.sessions).length > CLOSED_SESSIONS_MAX) {
+    //         let oldestKey;
+    //         let oldestSession;
+    //         for (const [key, session] of Object.entries(this.sessions)) {
+    //             if (session.indexInfo.closed !== -1 &&
+    //                 (!oldestSession || session.indexInfo.closed < oldestSession.indexInfo.closed)) {
+    //                 oldestKey = key;
+    //                 oldestSession = session;
+    //             }
+    //         }
+    //         if (oldestKey) {
+    //             // console.info("Removing old closed session:", oldestSession);
+    //             console.info("Removing old closed session");
+    //             delete this.sessions[oldestKey];
+    //         } else {
+    //             throw new Error('Corrupt sessions object');
+    //         }
+    //     }
+    // }
+    // teste de melhoria de desempenho
     removeOldSessions() {
-        while (Object.keys(this.sessions).length > CLOSED_SESSIONS_MAX) {
-            let oldestKey;
-            let oldestSession;
-            for (const [key, session] of Object.entries(this.sessions)) {
-                if (session.indexInfo.closed !== -1 &&
-                    (!oldestSession || session.indexInfo.closed < oldestSession.indexInfo.closed)) {
-                    oldestKey = key;
-                    oldestSession = session;
-                }
+        const sessionKeys = Object.keys(this.sessions);
+        const processNext = (index) => {
+            if (index >= sessionKeys.length) return;
+            const key = sessionKeys[index];
+            const session = this.sessions[key];
+            if (session.indexInfo.closed !== -1 &&
+                (!this.oldestSession || session.indexInfo.closed < this.oldestSession.indexInfo.closed)) {
+                this.oldestKey = key;
+                this.oldestSession = session;
             }
-            if (oldestKey) {
-                // console.info("Removing old closed session:", oldestSession);
-                console.info("Removing old closed session");
-                delete this.sessions[oldestKey];
-            } else {
-                throw new Error('Corrupt sessions object');
-            }
-        }
+            setImmediate(() => processNext(index + 1));
+        };
+        processNext(0);
     }
 
     deleteAllSessions() {
